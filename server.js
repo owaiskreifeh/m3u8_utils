@@ -3,8 +3,7 @@ var url = require('url');
 
 const filter = require('./index');
 
-const host = process.env.HOST || 'localhost';
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 3000;
 
 // ex: placeholder
 // console.log(JSON.stringify({
@@ -58,9 +57,19 @@ const requestListener = async function (req, res) {
     const queryParams = getParams(req);
     const manifestUrl = queryParams.u;
 
+    if (!manifestUrl) {
+        res.writeHead(400);
+        res.end()
+    }
+
     let options = {};
-    if (queryParams.o !== undefined) {        
-        options = matchParamsToOptions(JSON.parse(queryParams.o))
+    if (queryParams.o !== undefined) {  
+        try {
+            options = matchParamsToOptions(JSON.parse(queryParams.o))
+        } catch(e) {
+            res.writeHead(400);
+            res.end()
+        }
     }
 
     console.log("manifest url", manifestUrl);
@@ -88,9 +97,7 @@ const requestListener = async function (req, res) {
 };
 
 const server = http.createServer(requestListener);
-server.listen(port, host, () => {
-    console.log(`Server is running on http://${host}:${port}`);
-});
+server.listen(port);
 function getParams(req) {
     var urlParts = url.parse(req.url, true);
     return urlParts.query;
