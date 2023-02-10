@@ -40,23 +40,6 @@ PARAMS_OPTIONS_MAP = {
     at: "allowedTextLanguages",
 }
 
-function unescapeSlashes(str) {
-    // add another escaped slash if the string ends with an odd
-    // number of escaped slashes which will crash JSON.parse
-    let parsedStr = str.replace(/(^|[^\\])(\\\\)*\\$/, "$&\\");
-  
-    // escape unescaped double quotes to prevent error with
-    // added double quotes in json string
-    parsedStr = parsedStr.replace(/(^|[^\\])((\\\\)*")/g, "$1\\$2");
-  
-    try {
-      parsedStr = JSON.parse(`"${parsedStr}"`);
-    } catch(e) {
-      return str;
-    }
-    return parsedStr ;
-  }
-
 function matchParamsToOptions(params) {
     const options = {};
     for (const [key, value] of Object.entries(params)) {
@@ -65,6 +48,16 @@ function matchParamsToOptions(params) {
         } else {
             throw new Error(`Unknown parameter ${key}`);
         }
+    }
+    return options;
+}
+
+function deserializeOptions(str) {
+    const options = {};
+    const frags = str.split(";");
+    for (const frag of frags) {
+        const [key, value] = frag.split(":");
+        options[key] = value.includes(",") ? value.split(",") : value;
     }
     return options;
 }
@@ -81,8 +74,7 @@ const requestListener = async function (req, res) {
     let options = {};
     if (queryParams.o !== undefined) {  
         try {
-            let unescapedParams = queryParams.o.replace(/\\/g,"")
-            options = matchParamsToOptions(JSON.parse(unescapedParams))
+            options = matchParamsToOptions(deserializeOptions(queryParams.o))
         } catch(e) {
             console.error("error while fetching options", e)
            // noop
