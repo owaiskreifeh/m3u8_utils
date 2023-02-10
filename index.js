@@ -380,7 +380,7 @@ const defaultOptions = {
 }
 
 function formatM3U8(str = "", options = defaultOptions) {
-    console.log("formatting: ", str.substring(0, 10));
+    console.log("formatting: ", {options});
     let newManifest = [];
 
     const rows = str.split("\n");
@@ -409,7 +409,7 @@ function formatM3U8(str = "", options = defaultOptions) {
             if (allowAdaptation) {
                 newManifest.push(row)
                 if (!adaptationURL.startsWith("http") && options.urlsToAbsolutePath) {
-                    adaptationURL = path.join(options.baseURL, adaptationURL);
+                    adaptationURL = joinPath(options.baseURL, adaptationURL)
                 }
                 newManifest.push(adaptationURL);
             }
@@ -515,6 +515,30 @@ function getAttributes(row = "") {
     return attributes;
 }
 
+function joinPath(base, path) {
+    var url1 = base.split('/');
+    var url2 = path.split('/');
+    var url3 = [ ];
+    for (var i = 0, l = url1.length; i < l; i ++) {
+      if (url1[i] == '..') {
+        url3.pop();
+      } else if (url1[i] == '.') {
+        continue;
+      } else {
+        url3.push(url1[i]);
+      }
+    }
+    for (var i = 0, l = url2.length; i < l; i ++) {
+      if (url2[i] == '..') {
+        url3.pop();
+      } else if (url2[i] == '.') {
+        continue;
+      } else {
+        url3.push(url2[i]);
+      }
+    }
+    return url3.join('/');}
+
 // remove the quotes from the last and first chars if any
 function removeQuotations(str = "") {
     if (str.startsWith('"')) {
@@ -537,7 +561,7 @@ function trackURIToAbsolute(track, baseUrl) {
     const pattern = /URI="([^"]*)"/;
     const result = track.match(pattern);
     const uri = result[1];
-    track = track.replace(uri, path.join(baseUrl, uri))
+    track = track.replace(uri, joinPath(baseUrl, uri));
     return track;
 }
 
@@ -569,6 +593,7 @@ module.exports = function filter(manifestUrl, options = {}) {
                     let pathName = parsedUrl.pathname.split("/");
                     pathName.pop();
                     const baseURL = parsedUrl.protocol + '//' + parsedUrl.host + pathName.join("/");
+                    console.log({baseURL});
                     const filteredManifest = formatM3U8(body, {
                         ...defaultOptions,
                         baseURL,
