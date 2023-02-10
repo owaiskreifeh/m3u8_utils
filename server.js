@@ -59,11 +59,12 @@ const requestListener = async function (req, res) {
     const manifestUrl = queryParams.u;
 
     let options = {};
-    // options
-    if (queryParams.o !== undefined) {
-        
+    if (queryParams.o !== undefined) {        
         options = matchParamsToOptions(JSON.parse(queryParams.o))
     }
+
+    console.log("manifest url", manifestUrl);
+    console.log("options", options);
 
     try {
         const data = await filter(manifestUrl, options);
@@ -72,11 +73,13 @@ const requestListener = async function (req, res) {
                 res.setHeader(key, value);
             }
         }
+        console.log("data", data.filteredManifest.substring(0,10));
         res.setHeader("Content-Length", Buffer.byteLength(data.filteredManifest))
         res.setHeader("x-content-mod", 'yes-moded')
         res.writeHead(200);
         res.end(data.filteredManifest)
     } catch (err) {
+        console.log("on response error", err);
         res.writeHead(302, {
             'Location': manifestUrl
         });

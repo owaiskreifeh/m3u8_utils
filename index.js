@@ -380,7 +380,7 @@ const defaultOptions = {
 }
 
 function formatM3U8(str = "", options = defaultOptions) {
-
+    console.log("formatting: ", str.substring(0, 10));
     let newManifest = [];
 
     const rows = str.split("\n");
@@ -559,6 +559,7 @@ module.exports = function filter(manifestUrl, options = {}) {
             res.setEncoding('utf8');
             res.on('data', (chunk) => body += chunk);
             res.on('end', () => {
+                console.log("Response to manifest found")
                 try {
                     if (res.statusCode !== 200) {
                         reject(res);
@@ -578,6 +579,8 @@ module.exports = function filter(manifestUrl, options = {}) {
                         headers: res.headers,
                     });
                 } catch (e) {
+                    console.log("Response to manifest not found", e)
+
                     reject(e);
                 }
             });
