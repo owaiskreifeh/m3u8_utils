@@ -29,6 +29,7 @@ const defaultOptions = {
     removeDummyText: true,
     removeTrickPlayTrack: false,
     allowedCodecs: [CODECS.H264, CODECS.H265],
+    changeLanguageForDubbed: false,
     // translateNameTo: '',
     // allowedAudioLanguages: ['ar', 'en'],
     // allowedTextLanguages: ['ar', 'en'],
@@ -113,6 +114,10 @@ function formatM3U8(str = "", options = defaultOptions) {
 
                 if (!attr.uri.startsWith("http") && options.urlsToAbsolutePath) {
                     newRow = trackURIToAbsolute(newRow, options.baseURL);
+                }
+
+                if (options.changeLanguageForDubbed && attr.type == 'AUDIO' && trackLang == 'ar_cl') {
+                    newRow = newRow.replace('LANGUAGE="ar_cl"', 'LANGUAGE="ar-dubbed"')
                 }
 
                 newManifest.push(newRow);

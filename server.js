@@ -21,6 +21,7 @@ const port = process.env.PORT || 3000;
 //     tn: '',
 //     au: ['ar', 'en'],
 //     at: ['ar', 'en'],
+//     ld: false,
 // }))
 
 PARAMS_OPTIONS_MAP = {
@@ -38,6 +39,7 @@ PARAMS_OPTIONS_MAP = {
     tn: "translateNameTo",
     au: "allowedAudioLanguages",
     at: "allowedTextLanguages",
+    ld: "changeLanguageForDubbed",
 }
 
 function matchParamsToOptions(params) {
@@ -56,6 +58,7 @@ function deserializeOptions(str) {
     const options = {};
     const frags = str.split(";");
     for (const frag of frags) {
+        if (!frag) continue;
         const [key, value] = frag.split(":");
         if (value.toLocaleLowerCase() == 'true') {
             options[key] = true;
