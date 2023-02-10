@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "proxy to fitler and edit m3u8",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
