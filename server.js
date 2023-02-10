@@ -57,7 +57,13 @@ function deserializeOptions(str) {
     const frags = str.split(";");
     for (const frag of frags) {
         const [key, value] = frag.split(":");
-        options[key] = value.includes(",") ? value.split(",") : value;
+        if (value.toLocaleLowerCase() == 'true') {
+            options[key] = true;
+        } else if  (value.toLocaleLowerCase() == 'false') {
+            options[key] = false;
+        } else {
+            options[key] = value.includes(",") ? value.split(",") : value;
+        }
     }
     return options;
 }
