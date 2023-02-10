@@ -368,7 +368,7 @@ const defaultOptions = {
     autoFlipTrackLanguage: true,
     flipLangTitleAudio: true,
     flipLangTitleText: true,
-    maxHeight: 1080,
+    maxHeight: Infinity,
     minHeight: 288,
     removeDummyAudio: true,
     removeDummyText: true,
@@ -376,7 +376,7 @@ const defaultOptions = {
     allowedCodecs: [CODECS.H264, CODECS.H265],
     translateNameTo: 'en',
     // allowedAudioLanguages: ['ar', 'en'],
-    allowedTextLanguages: ['ar', 'en'],
+    // allowedTextLanguages: ['ar', 'en'],
 }
 
 function formatM3U8(str = "", options = defaultOptions) {
@@ -392,11 +392,21 @@ function formatM3U8(str = "", options = defaultOptions) {
             let adaptationURL = rows[currentRow + 1];
             currentRow += 2;
             const attr = getAttributes(row);
-            if (
-                options.allowedCodecs && options.allowedCodecs.includes(attr.codecs) &&
-                options.maxHeight && options.maxHeight >= attr.height &&
-                options.minHeight && options.minHeight <= attr.height
-            ) {
+
+            let allowAdaptation = true;
+            if (options.allowedCodecs && !options.allowedCodecs.includes(attr.codecs)) {
+                allowAdaptation = false;
+            }
+
+            if (options.maxHeight && options.maxHeight < attr.height) {
+                allowAdaptation = false;
+            }
+
+            if (options.minHeight && options.minHeight > attr.height) {
+                allowAdaptation = false;
+            }
+
+            if (allowAdaptation) {
                 newManifest.push(row)
                 if (!adaptationURL.startsWith("http") && options.urlsToAbsolutePath) {
                     adaptationURL = path.join(options.baseURL, adaptationURL);
@@ -532,7 +542,8 @@ function getLangName(lang, translateTo) {
 
 
 // main
-const manifestUrl = 'https://d13mimtabamwrr.cloudfront.net/out/v1/ec8143311ce84ab7956abf369edbb5e5/08add7e5c85b4afab267e7b637ecc06f/dd2764caaf08468c961f6ced5857253b/index.m3u8?aws.manifestfilter=video_height:288-576;video_codec:H264;subtitle_language:none'
+// const manifestUrl = 'https://d13mimtabamwrr.cloudfront.net/out/v1/ec8143311ce84ab7956abf369edbb5e5/08add7e5c85b4afab267e7b637ecc06f/dd2764caaf08468c961f6ced5857253b/index.m3u8?aws.manifestfilter=video_height:288-576;video_codec:H264;subtitle_language:none'
+const manifestUrl = 'https://d13mimtabamwrr.cloudfront.net/out/v1/ec8143311ce84ab7956abf369edbb5e5/08add7e5c85b4afab267e7b637ecc06f/dd2764caaf08468c961f6ced5857253b/index.m3u8'
 const req = https.request(manifestUrl, (res) => {
     let body = '';
     res.setEncoding('utf8');
