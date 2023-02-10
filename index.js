@@ -363,7 +363,7 @@ const CODECS = {
 const NORMALIZED_LANGUAGES = ['qor', 'qar', 'qaa', 'qab', 'qac', 'qad', 'qae'];
 
 const defaultOptions = {
-    baseURL: "https://owais.me/",
+    baseURL: "",
     urlsToAbsolutePath: true,
     autoFlipTrackLanguage: true,
     flipLangTitleAudio: true,
@@ -374,7 +374,7 @@ const defaultOptions = {
     removeDummyText: true,
     removeTrickPlayTrack: false,
     allowedCodecs: [CODECS.H264, CODECS.H265],
-    translateNameTo: 'en',
+    // translateNameTo: '',
     // allowedAudioLanguages: ['ar', 'en'],
     // allowedTextLanguages: ['ar', 'en'],
 }
@@ -394,7 +394,7 @@ function formatM3U8(str = "", options = defaultOptions) {
             const attr = getAttributes(row);
 
             let allowAdaptation = true;
-            if (options.allowedCodecs && !options.allowedCodecs.includes(attr.codecs)) {
+            if (hasEntries(options.allowedCodecs) && !options.allowedCodecs.includes(attr.codecs)) {
                 allowAdaptation = false;
             }
 
@@ -413,6 +413,7 @@ function formatM3U8(str = "", options = defaultOptions) {
                 }
                 newManifest.push(adaptationURL);
             }
+
         } else if (row.startsWith(LINE_TAG.TRACK)) {
             currentRow++;
             const attr = getAttributes(row);
@@ -428,11 +429,11 @@ function formatM3U8(str = "", options = defaultOptions) {
 
             let isTextAllowed = true, isAudioAllowed = true;
 
-            if (options.allowedTextLanguages) {
+            if (attr.type == 'SUBTITLES' && hasEntries(options.allowedTextLanguages)) {
                 isTextAllowed = options.allowedTextLanguages.includes(trackLang);
             }
 
-            if (options.allowedAudioLanguages) {
+            if (attr.type == 'AUDIO' && hasEntries(options.allowedAudioLanguages)) {
                 isAudioAllowed = options.allowedAudioLanguages.includes(trackLang);
             }
 
@@ -464,8 +465,14 @@ function formatM3U8(str = "", options = defaultOptions) {
 
 
         } else if (row.startsWith(LINE_TAG.TRICK_PLAY)) {
+
             if (!options.removeTrickPlayTrack) {
-                newManifest.push(row);
+                const attr = getAttributes(row);
+                let newRow = row;
+                if (!attr.uri.startsWith("http") && options.urlsToAbsolutePath) {
+                    newRow = trackURIToAbsolute(newRow, options.baseURL);
+                }
+                newManifest.push(newRow);
             }
             currentRow++;
         } else {
@@ -531,34 +538,52 @@ function trackURIToAbsolute(track, baseUrl) {
     const result = track.match(pattern);
     const uri = result[1];
     track = track.replace(uri, path.join(baseUrl, uri))
-    console.log("replaced", track)
     return track;
 }
 
 function getLangName(lang, translateTo) {
+    if (!translateTo) return lang;
     const object = LANG_MAP.find(l => l.language == lang);
     return object ? object.translation[translateTo] : lang;
 }
 
+function hasEntries(arr) {
+    return arr && arr.length > 0;
+}
 
-// main
-// const manifestUrl = 'https://d13mimtabamwrr.cloudfront.net/out/v1/ec8143311ce84ab7956abf369edbb5e5/08add7e5c85b4afab267e7b637ecc06f/dd2764caaf08468c961f6ced5857253b/index.m3u8?aws.manifestfilter=video_height:288-576;video_codec:H264;subtitle_language:none'
-const manifestUrl = 'https://d13mimtabamwrr.cloudfront.net/out/v1/ec8143311ce84ab7956abf369edbb5e5/08add7e5c85b4afab267e7b637ecc06f/dd2764caaf08468c961f6ced5857253b/index.m3u8'
-const req = https.request(manifestUrl, (res) => {
-    let body = '';
-    res.setEncoding('utf8');
-    res.on('data', (chunk) => body += chunk);
-    res.on('end', () => {
-        const parsedUrl = url.parse(manifestUrl);
-        let pathName = parsedUrl.pathname.split("/");
-        pathName.pop();
-        const baseURL = parsedUrl.protocol + '//' + parsedUrl.host + pathName.join("/");
-        console.log(formatM3U8(body, {
-            ...defaultOptions,
-            baseURL,
-        }));
-    });
-});
-req.on('error', console.error);
-req.write(JSON.stringify(url));
-req.end();
+
+module.exports = function filter(manifestUrl, options = {}) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(manifestUrl, (res) => {
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                try {
+                    if (res.statusCode !== 200) {
+                        reject(res);
+                        return;
+                    }
+                    const parsedUrl = url.parse(manifestUrl);
+                    let pathName = parsedUrl.pathname.split("/");
+                    pathName.pop();
+                    const baseURL = parsedUrl.protocol + '//' + parsedUrl.host + pathName.join("/");
+                    const filteredManifest = formatM3U8(body, {
+                        ...defaultOptions,
+                        baseURL,
+                        ...options
+                    });
+                    resolve({
+                        filteredManifest,
+                        headers: res.headers,
+                    });
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+        req.on('error', reject);
+        req.write(JSON.stringify(url));
+        req.end();
+    })
+}
